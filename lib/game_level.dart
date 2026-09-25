@@ -18,9 +18,9 @@ class GameLevel {
 
 class GetResult {
   final double score;
-  final bool didWin;
+  final bool isWin;
 
-  GetResult({required this.score, required this.didWin});
+  GetResult({required this.score, required this.isWin});
 } 
 GetResult scoreCalcOfShadowAgainstTarget({
   required Path shadowPath,
@@ -50,5 +50,5 @@ GetResult scoreCalcOfShadowAgainstTarget({
     }
   }
   final score = totalPoints > 0 ? matchedPoints / totalPoints : 0.0;
-  return GetResult(score: score, didWin: score >= winPercentageMatch);
+  return GetResult(score: score, isWin: score >= winPercentageMatch);
 }
