@@ -1,19 +1,15 @@
 import 'dart:ui';
 
-import 'package:lux/shadow_function.dart';
-
 class GameLevel {
-  // The model.
   GameLevel({
-  required this.levelName,
-  required this.lightLocation,
-  required this.expectedShape,
-  required this.blockers,
-});
+    required this.levelName,
+    required this.parts,
+    required this.lightRadius,
+  });
+ 
   final String levelName;
-  Offset lightLocation;
-  final Path expectedShape;
-  final List<LightBlocker> blockers;
+  final List<PuzzleParts> parts;
+  final double lightRadius;
 }
 
 class GetResult {
@@ -21,34 +17,30 @@ class GetResult {
   final bool isWin;
 
   GetResult({required this.score, required this.isWin});
-} 
-GetResult scoreCalcOfShadowAgainstTarget({
-  required Path shadowPath,
-  required Path targetPath,
-  required Rect targetBounds,
-  double winPercentageMatch = 0.92,
-  int gridStep = 12,
-}) {
-  int totalPoints = 0;
-  int matchedPoints = 0;
-
-// Moves across the screen in some sort of grid pattern.
-  for (double xVal = targetBounds.left; xVal < targetBounds.right; xVal += gridStep) {
-    for (double yVal = targetBounds.top; yVal < targetBounds.bottom; yVal += gridStep) {
-      final val = Offset(xVal, yVal);
-      final valInTarget = targetPath.contains(val);
-      final valInShadow = shadowPath.contains(val);
-      // If the point is in the shadow or target, it is counted as a point to chack
-      if (valInShadow || valInTarget) {
-        totalPoints++;
-
-        // If the point is inside both, thet match...
-        if (valInShadow == valInTarget) {
-          matchedPoints++;
-        }
-      }
-    }
-  }
-  final score = totalPoints > 0 ? matchedPoints / totalPoints : 0.0;
-  return GetResult(score: score, isWin: score >= winPercentageMatch);
 }
+
+GetResult score(List<PuzzleParts> pieces) {
+  final placedCount = pieces.where((val) => val.isPlaced).length;
+  final score = pieces.isEmpty ? 0.0 : placedCount / pieces.length;
+  return GetResult(score: score, isWin: placedCount == pieces.length);
+}
+
+class PuzzleParts {
+  PuzzleParts({
+    required this.id,
+    required this.color,
+    required this.label,
+    required this.correctPosition,
+    required this.currentPosition,
+    required this.size,
+  });
+  final String id;
+  final Color color;
+  final String label; 
+  final Offset correctPosition;
+  Offset currentPosition;
+  final Size size;
+ 
+  bool get isPlaced => (currentPosition - correctPosition).distance < 4;
+}
+
