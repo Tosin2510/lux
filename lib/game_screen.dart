@@ -19,10 +19,13 @@ class _GameScreenState extends State<GameScreen> {
   Offset? spotLightPosition;
   PuzzleParts? dragger;
   Offset dragOffset = Offset.zero; // where inside the piece you grabbed it, so it doesn't snap to your finger
+  Size? lastCanvasSize; // stashed so we can build a fresh letter after a win, outside of build()
+  int lettersSolved = 0;
 
   GameLevel? get currentLevel => levels?[gameLevelIndex];
 
   void initializeGameLevels(Size size) {
+    lastCanvasSize = size;
     if (currentLevel == null) {
       levels = GameLevelsData.build(size);
     }
@@ -42,18 +45,23 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void showDialogUponWin() {
+    lettersSolved++;
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A24),
-        title: const Text('Yaaayyyy....you spelled it', style: TextStyle(color: Colors.white)),
-        content: Text('${currentLevel!.word} - nice work.', style: const TextStyle(color: Colors.white70)),
+        title: const Text('Yaaayyyy....you formed it', style: TextStyle(color: Colors.white)),
+        content: Text('Letter "${currentLevel!.letter}" done. $lettersSolved so far.',
+            style: const TextStyle(color: Colors.white70)),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               setState(() {
-                gameLevelIndex = (gameLevelIndex + 1) % levels!.length;
+                // roll a fresh random letter instead of cycling a fixed list -
+                // this is what makes it keep going instead of stopping at one letter
+                levels = [GameLevelsData.pickRandomLetterLevel(lastCanvasSize!, avoid: currentLevel!.letter)];
+                gameLevelIndex = 0;
                 didWin = false;
                 matchScore = 0;
                 spotLightPosition = null;
@@ -117,11 +125,11 @@ class _GameScreenState extends State<GameScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        currentLevel?.levelName ?? '',
+                        'solved: $lettersSolved',
                         style: const TextStyle(color: Colors.white38, fontSize: 13, letterSpacing: 0.5),
                       ),
                       Text(
-                        wordProgress(currentLevel!),
+                        letterDisplay(currentLevel!),
                         style: const TextStyle(
                           color: Color(0xFFE8C46A),
                           fontSize: 22,
