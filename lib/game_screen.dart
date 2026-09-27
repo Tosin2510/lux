@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lux/game_level.dart';
 import 'package:lux/game_levels_data.dart';
-import 'package:lux/shadow_function.dart';
+import 'package:lux/paint_game.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
@@ -11,20 +12,42 @@ class GameScreen extends StatefulWidget {
 }
 
 class _GameScreenState extends State<GameScreen> {
-  List<GameLevel>? gamelevels;
+  List<GameLevel>? levels;
   int gameLevelIndex = 0;
   double matchScore = 0.0;
   bool didWin = false;
-  LightBlocker? dragger; // Basically holds the shape(blocker) the user is dragging.
+  Offset? spotLightPosition;
+  PuzzleParts? dragger;
+  Offset dragOffset = Offset.zero; // where inside the piece you grabbed it, so it doesn't snap to your finger
 
-// The dialog that shows when the user wins.
+  GameLevel? get currentLevel => levels?[gameLevelIndex];
+
+  void initializeGameLevels(Size size) {
+    if (currentLevel == null) {
+      levels = GameLevelsData.build(size);
+    }
+  }
+
+  void takeScore() {
+    final result = score(currentLevel!.parts);
+    matchScore = result.score;
+
+    if (result.isWin && !didWin) {
+      didWin = true;
+      HapticFeedback.mediumImpact(); // a bigger buzz for the actual win, not just a piece snap
+      WidgetsBinding.instance.addPostFrameCallback((_) => showDialogUponWin());
+    } else if (!result.isWin) {
+      didWin = false;
+    }
+  }
+
   void showDialogUponWin() {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A24),
-        title: const Text('Yaaayyyy....match found', style: TextStyle(color: Colors.white)),
-        content: Text('${currentLevel!.levelName} solved.', style: const TextStyle(color: Colors.white70)),
+        title: const Text('Yaaayyyy....you spelled it', style: TextStyle(color: Colors.white)),
+        content: Text('${currentLevel!.word} - nice work.', style: const TextStyle(color: Colors.white70)),
         actions: [
           TextButton(
             onPressed: () {
@@ -33,6 +56,7 @@ class _GameScreenState extends State<GameScreen> {
                 gameLevelIndex = (gameLevelIndex + 1) % levels!.length;
                 didWin = false;
                 matchScore = 0;
+                spotLightPosition = null;
               });
             },
             child: const Text('Next'),
@@ -42,45 +66,41 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-// 
-  void scoreNote(Size size) {
-    final rectBox = Offset.zero & size;
-    // Calculates the shadow shape on the screen based on the rectangular blockers, light and all...
-    final shadow = totalCombinedShadowArea(
-      lightLocation: currentLevel!.lightLocation,
-      blockers: currentLevel!.blockers,
-      rectBox: rectBox,
-    );
-    final result = scoreCalcOfShadowAgainstTarget(
-      shadowPath: shadow,
-      targetPath: currentLevel!.expectedShape,
-      targetBounds: rectBox,
-    );
-    matchScore = result.score;
- 
- // If the user wins and it hasn't been shown, the popup is shown.
-    if (result.isWin && !didWin) {
-      didWin = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) => showDialogUponWin());
-    } else if (!result.isWin) {
-      didWin = false;
+  // touching the screen is what turns the light on in the first place
+  void startDrag(DragStartDetails details) {
+    spotLightPosition = details.localPosition;
+    // check topmost piece first in case any overlap
+    for (final piece in currentLevel!.parts.reversed) {
+      final rectVal = piece.currentPosition & piece.size;
+      if (rectVal.contains(details.localPosition) && !piece.isPlaced) {
+        dragger = piece;
+        dragOffset = details.localPosition - piece.currentPosition;
+        break;
+      }
     }
   }
 
-// This gives the current level based on the gameLevlIndex.
-  GameLevel? get currentLevel => levels?[gameLevelIndex]; 
-
-  // This initialize the game level
-  // I added the null check so that the build doesn't keep on rebuilding and clear the user progress.
-  void initializeGameLevels(Size size) {
-    if (currentLevel == null) {
-      levels = GameLevelsData.build(size);
+  void updateDrag(DragUpdateDetails details) {
+    spotLightPosition = details.localPosition;
+    if (dragger != null) {
+      dragger!.currentPosition = details.localPosition - dragOffset;
     }
+    takeScore();
+    setState(() {});
   }
 
-  List<GameLevel>? levels = [];
+  void endDrag(DragEndDetails details) {
+    // snap it home if it landed close enough
+    if (dragger != null && (dragger!.currentPosition - dragger!.correctPosition).distance < 30) {
+      dragger!.currentPosition = dragger!.correctPosition;
+      HapticFeedback.lightImpact(); // little buzz so placing a piece actually feels like something
+      takeScore();
+      setState(() {});
+    }
+    dragger = null;
+  }
+
   @override
-  // The build.
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0B0B12),
@@ -92,64 +112,47 @@ class _GameScreenState extends State<GameScreen> {
             return Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '${currentLevel?.levelName}  >>>  ${gameLevelIndex + 1}/${levels!.length}',
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 14,
-                          letterSpacing: 0.5,
-                        ),
+                        currentLevel?.levelName ?? '',
+                        style: const TextStyle(color: Colors.white38, fontSize: 13, letterSpacing: 0.5),
                       ),
                       Text(
-                        '${(matchScore * 100).clamp(0, 100).toStringAsFixed(0)}% matched',
-                        style: TextStyle(
-                          color: Color.lerp(Colors.white38, const Color(0xFFE8C46A), matchScore),
-                          fontSize: 14,
+                        wordProgress(currentLevel!),
+                        style: const TextStyle(
+                          color: Color(0xFFE8C46A),
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 2,
                         ),
                       ),
                     ],
                   ),
                 ),
-                // To be done......
-                /*Expanded(
+                // where all the actual game stuff happens
+                Expanded(
                   child: GestureDetector(
-                    onPanStart: onDragStart,
-                    onPanUpdate: (d) => onDragUpdate(d, canvasSize),
-                    onPanEnd: (_) => dragger = null,
+                    onPanStart: startDrag,
+                    onPanUpdate: updateDrag,
+                    onPanEnd: endDrag,
                     child: CustomPaint(
                       size: Size(canvasSize.width, canvasSize.height - 64),
-                      painter: // TBC,
+                      painter: PaintGame(
+                        currentLevel: currentLevel!,
+                        spotLightPosition: spotLightPosition,
+                        isWin: didWin,
+                      ),
                     ),
                   ),
-                ),*/
+                ),
               ],
             );
           },
         ),
       ),
     );
-  }
-
-// checks if the user has clicked on any blocker and drags it....
-  void onDragStart(DragStartDetails d) {
-    // check topmost blocker first in case they overlap
-    for (final b in currentLevel!.blockers.reversed) {
-      final path = Path()..addPolygon(b.vertices, true);
-      if (path.contains(d.localPosition)) {
-        dragger = b;
-        break;
-      }
-    }
-  }
-
-  void onDragUpdate(DragUpdateDetails d, Size size) {
-    if (dragger == null) return;
-    dragger!.moveBy(d.delta);
-    scoreNote(size);
-    setState(() {});
   }
 }
