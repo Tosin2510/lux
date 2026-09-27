@@ -1,57 +1,85 @@
 import 'dart:ui';
 
 import 'package:lux/game_level.dart';
-import 'package:lux/shadow_function.dart';
 
 class GameLevelsData {
   static List<GameLevel> build(Size canvasSize) {
       // This should be responsive to diff screen sizes.
     Offset val(double xVal, double yVal) => Offset(xVal * canvasSize.width, yVal * canvasSize.height);
-
-// A rectangular target shape that the user should match with the shadow.
-    Path rectTargetPath(Offset topLeft, Offset size) {
-      final path = Path();
-      path.addRect(Rect.fromLTWH(topLeft.dx, topLeft.dy, size.dx, size.dy));
-      return path;
+    
+    List<PuzzleParts> buildGameGrid({
+      required int rows,
+      required int columns,
+      required Offset topLeftPartOfGrid,
+      required double sizeOfEachPiece,
+      required List<Offset> scatterSpots,
+      required List<Color> colors,
+    }) {
+      final pieces = <PuzzleParts>[];
+      int index = 0;
+      for (int rw = 0; rw < rows; rw++) {
+        for (int col = 0; col < columns; col++) {
+          final correctPosition = topLeftPartOfGrid + Offset(col * sizeOfEachPiece, rw * sizeOfEachPiece);
+          pieces.add(PuzzleParts(
+            id: 'p$index',
+            color: colors[index % colors.length],
+            label: String.fromCharCode(65 + index), // A, B, C...
+            correctPosition: correctPosition,
+            currentPosition: scatterSpots[index],
+            size: Size(sizeOfEachPiece - 4, sizeOfEachPiece - 4), // tiny gap so pieces read as separate, not glued together
+          ));
+          index++;
+        }
+      }
+      return pieces;
     }
 
-    // The blocker part is the part that actually blocks the light.
-
-    LightBlocker blocker(String stringId, Offset centerVal, double width, double height) {
-      return LightBlocker(
-       stringId: stringId,
-       vertices: [
-          centerVal + Offset(-width / 2, -height / 2),
-          centerVal + Offset(width / 2, -height / 2),
-          centerVal + Offset(width / 2, height / 2),
-          centerVal + Offset(-width / 2, height / 2),
-        ],
-      );
-    }
-
-     return [
+  final gameColors = [
+      const Color(0xFFE8C46A),
+      const Color(0xFF6AA9E8),
+      const Color(0xFFE86A6A),
+      const Color(0xFF6AE89B),
+      const Color(0xFFCB8CE8),
+      const Color(0xFFE8A46A),
+    ];
+ 
+    return [
       GameLevel(
-        levelName: 'Warm Up',
-        lightLocation: val(0.5, 0.08),
-        expectedShape: rectTargetPath(val(0.30, 0.65), val(0.40, 0.18)),
-        blockers: [blocker('b1', val(0.5, 0.35), 60, 40)],
+        levelName: 'First Spark',
+        lightRadius: 70,
+        parts: buildGameGrid(
+          rows: 2,
+          columns: 2,
+          topLeftPartOfGrid: val(0.30, 0.55),
+          sizeOfEachPiece: canvasSize.width * 0.2,
+          scatterSpots: [
+            val(0.15, 0.15),
+            val(0.65, 0.12),
+            val(0.10, 0.75),
+            val(0.70, 0.80),
+          ],
+          colors: gameColors,
+        ),
       ),
  
       GameLevel(
-        levelName: 'Double Trouble',
-        lightLocation: val(0.5, 0.08),
-        expectedShape: rectTargetPath(val(0.15, 0.68), val(0.70, 0.15)),
-        blockers: [
-          blocker('b1', val(0.35, 0.35), 50, 35),
-          blocker('b2', val(0.65, 0.4), 50, 35),
-        ],
-      ),
- 
-      GameLevel(
-        levelName: 'Side Step',
-        lightLocation: val(0.15, 0.1),
-        expectedShape: rectTargetPath(val(0.45, 0.62), val(0.35, 0.2)),
-        blockers: [blocker('b1', val(0.4, 0.32), 55, 45)],
+        levelName: 'Six Pieces',
+        lightRadius: 60,
+        parts: buildGameGrid(
+          rows: 2,
+          columns: 3,
+          topLeftPartOfGrid: val(0.18, 0.55),
+          sizeOfEachPiece: canvasSize.width * 0.16,
+          scatterSpots: [
+            val(0.10, 0.10),
+            val(0.45, 0.08),
+            val(0.80, 0.12),
+            val(0.10, 0.85),
+            val(0.45, 0.90),
+            val(0.85, 0.85),
+          ],
+          colors: gameColors,
+        ),
       ),
     ];
   }
