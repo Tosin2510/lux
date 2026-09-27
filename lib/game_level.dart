@@ -24,7 +24,7 @@ class PuzzleParts {
   final Offset correctPosition;
   Offset currentPosition;
   final Size size;
-  final int letterIndex; // which letter of the word this piece belongs to
+  final int letterIndex; // always 0 now - only one letter per level, this is leftover plumbing from when it was a whole word
 
   // 0 = straight edge, 1 = bump out, -1 = notch in
   final int topEdge;
@@ -38,13 +38,13 @@ class PuzzleParts {
 class GameLevel {
   GameLevel({
     required this.levelName,
-    required this.word,
+    required this.letter,
     required this.parts,
     required this.spotlightRadius,
   });
 
   final String levelName;
-  final String word; // the actual word being spelled, e.g. "COOK"
+  final String letter; // the single letter you're forming right now, e.g. "Q" - NOT a word, just one letter at a time
   final List<PuzzleParts> parts;
   final double spotlightRadius;
 }
@@ -63,15 +63,9 @@ ScoreResult score(List<PuzzleParts> parts) {
   return ScoreResult(score: val, isWin: placedCount == parts.length);
 }
 
-// builds the "C _ _ K" style display - a letter only shows once every
-// piece belonging to it has landed in place
-String wordProgress(GameLevel level) {
-  final buffer = StringBuffer();
-  for (int i = 0; i < level.word.length; i++) {
-    final letterParts = level.parts.where((p) => p.letterIndex == i);
-    final solved = letterParts.isNotEmpty && letterParts.every((p) => p.isPlaced);
-    buffer.write(solved ? level.word[i].toUpperCase() : '_');
-    if (i != level.word.length - 1) buffer.write('  ');
-  }
-  return buffer.toString();
+// shows the letter once every piece has landed in place, blank otherwise -
+// there's only ever one letter per level so this is just a single character
+String letterDisplay(GameLevel level) {
+  final solved = level.parts.isNotEmpty && level.parts.every((p) => p.isPlaced);
+  return solved ? level.letter.toUpperCase() : '_';
 }
