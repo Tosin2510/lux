@@ -3,62 +3,125 @@ import 'package:lux/completed_puzzles_screen.dart';
 import 'package:lux/game_screen.dart';
 import 'package:lux/progress_store.dart';
 
-class HomeScreen extends StatefulWidget{
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  // Holds the saved game sessions gotten from local storage.
+class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
+  // Holds the saved game session gotten from local storage.
   Map<String, dynamic>? savedGameSession;
 
-@override
-void initState() {
-  super.initState();
-  // immediately checks local storage for an active game session when the screen loads
-  checkIfSavedGameSession();
-}
+  // slow pulse for the glow behind the title
+  late AnimationController glowController;
 
-// The navigator push leads to the game screen.
-void goToGame(int count, {Map<String, dynamic>? saved}) {
+  @override
+  void initState() {
+    super.initState();
+    glowController = AnimationController(vsync: this, duration: const Duration(milliseconds: 2600))
+      ..repeat(reverse: true);
+    // immediately checks local storage for an active game session when the screen loads
+    checkIfSavedGameSession();
+  }
+
+  @override
+  void dispose() {
+    glowController.dispose();
+    super.dispose();
+  }
+
+  // The navigator push leads to the game screen.
+  void goToGame(int count, {Map<String, dynamic>? saved}) {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => GameScreen(letterCount: count, savedGameSession: saved)),
     ).then((_) => checkIfSavedGameSession()); // refresh so continue shows up / goes away
   }
-// I added this function to build the screen for the diff. modes of the game.
-   Widget gameModeButton(int count, String label) {
+
+  // checks if an active game session exists and updates the state of the widget.
+  Future<void> checkIfSavedGameSession() async {
+    final val = await Progress.loadSession();
+    // Guard condition for when the screen is no longer there.
+    if (!mounted) return;
+    setState(() {
+      savedGameSession = val;
+    });
+  }
+
+  // builds the button for each mode. sub is the small hint under the name
+  Widget gameModeButton(int count, String label, String sub) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: SizedBox(
         width: double.infinity,
         child: OutlinedButton(
           style: OutlinedButton.styleFrom(
-            foregroundColor:  Color(0xFFE8C46A),
+            foregroundColor: const Color(0xFFE8C46A),
             side: const BorderSide(color: Color(0xFFE8C46A), width: 1),
-            padding: const EdgeInsets.symmetric(vertical: 16),
+            padding: const EdgeInsets.symmetric(vertical: 14),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
           ),
           onPressed: () => goToGame(count),
-          child: Text(label, style: const TextStyle(fontSize: 16)),
+          child: Column(
+            children: [
+              Text(label, style: const TextStyle(fontSize: 17, letterSpacing: 1)),
+              const SizedBox(height: 2),
+              Text(sub, style: const TextStyle(fontSize: 11, color: Colors.white38)),
+            ],
+          ),
         ),
       ),
     );
   }
 
-// checks if an active game session exists basically and updates the state pf wodget.
-Future<void> checkIfSavedGameSession() async {
-  final val = await Progress.loadSession();
-  // Guard condition for when the screen is no longe there.
-  if (!mounted) return;
-  setState(() {
-    savedGameSession = val;
-  });
-}
+  // the big title: glow behind + gold gradient letters on top
+  Widget buildTitle() {
+    return AnimatedBuilder(
+      animation: glowController,
+      builder: (context, _) {
+        final pulse = glowController.value; // 0 to 1 and back
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 260 + 40 * pulse,
+              height: 260 + 40 * pulse,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFFE8C46A).withValues(alpha: 0.10 + 0.14 * pulse),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+            ShaderMask(
+              blendMode: BlendMode.srcIn,
+              shaderCallback: (bounds) => const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFFFFF1C9), Color(0xFFE8C46A), Color(0xFF8C6A2E)],
+              ).createShader(bounds),
+              child: const Text(
+                'LUX',
+                style: TextStyle(
+                  fontSize: 96,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 14,
+                  color: Colors.white, // gets replaced by the gradient
+                  height: 1,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
-// The build method.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -67,22 +130,24 @@ Future<void> checkIfSavedGameSession() async {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 28),
           child: Column(
-             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text('lux',
-                  style: TextStyle(color: Color(0xFFE8C46A), fontSize: 44, fontWeight: FontWeight.bold, letterSpacing: 6)),
-              const SizedBox(height: 6),
-              const Text('find the pieces in the dark',
-                  style: TextStyle(color: Colors.white38, fontSize: 13)),
-              const SizedBox(height: 40),
+              buildTitle(),
+              const SizedBox(height: 4),
+              const Text(
+                'find the pieces in the dark',
+                style: TextStyle(color: Colors.white38, fontSize: 14, letterSpacing: 3),
+              ),
+              const SizedBox(height: 44),
 
+              // only shows if there is a game to continue
               if (savedGameSession != null) ...[
                 SizedBox(
                   width: double.infinity,
                   child: TextButton(
                     style: TextButton.styleFrom(
                       foregroundColor: const Color(0xFF0B0B12),
-                      backgroundColor: Color(0xFFE8C46A),
+                      backgroundColor: const Color(0xFFE8C46A),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                     ),
@@ -93,13 +158,16 @@ Future<void> checkIfSavedGameSession() async {
                     ),
                   ),
                 ),
-                // Thid is where the game buttons are dislayed.
                 const SizedBox(height: 24),
-                gameModeButton(1, 'Monad'),
-                gameModeButton(2, 'Dyad'),
-                gameModeButton(3, 'Triad'),
-                const SizedBox(height: 12),
-                // Leads tp the completed/ solved pzzle history screen
+              ], // <- the if block ends HERE, the buttons below are always shown
+
+              // This is where the game buttons are displayed.
+              gameModeButton(1, 'Monad', '1 letter'),
+              gameModeButton(2, 'Dyad', '2 letters'),
+              gameModeButton(3, 'Triad', '3 letters'),
+              const SizedBox(height: 12),
+
+              // Leads to the completed / solved puzzle history screen
               TextButton(
                 style: TextButton.styleFrom(foregroundColor: Colors.white54),
                 onPressed: () => Navigator.push(
@@ -108,10 +176,9 @@ Future<void> checkIfSavedGameSession() async {
                 ),
                 child: const Text('my solved puzzles'),
               ),
-              ],
-            ]
-          )
-        )
+            ],
+          ),
+        ),
       ),
     );
   }

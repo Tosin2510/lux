@@ -10,6 +10,24 @@ class CompletedPuzzleScreen extends StatefulWidget {
 
 class _CompletedScreenState extends State<CompletedPuzzleScreen> {
   List<ProgressStore>? completed;
+
+   Future<void> loadCompleted() async {
+    List<ProgressStore> val = [];
+    try {
+      val = await Progress.loadCompletedPuzzles();
+    } catch (e) {
+      debugPrint('couldnt load solved puzzles: $e');
+    }
+    if (!mounted) return;
+    setState(() => completed = val);
+  }
+
+   @override
+  void initState() {
+    super.initState();
+    loadCompleted();
+  }
+
   @override
   Widget build(BuildContext context) {
    return Scaffold(
@@ -68,13 +86,18 @@ class _CompletedScreenState extends State<CompletedPuzzleScreen> {
       ));
     }
 
-    return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      children: [
-        Text('${completed!.length} total',
-            style: const TextStyle(color: Colors.white38, fontSize: 12)),
-        ...sectionsVal,
-      ],
+        return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 600),
+        child: ListView(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          children: [
+            Text('${completed!.length} total',
+                style: const TextStyle(color: Colors.white38, fontSize: 12)),
+            ...sectionsVal,
+          ],
+        ),
+      ),
     );
   }
 }

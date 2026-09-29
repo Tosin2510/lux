@@ -77,8 +77,7 @@ class GameLevelsData {
     final val = word.length;
 
     // shrinking cells so the whole word fits across the screen regardless of the word length.
-    final maxiCell = canvasSize.width * 0.16;
-    final fitCell = (canvasSize.width - 32) / (val * cols + (val - 1) * gapCells);
+final maxiCell = min(canvasSize.width * 0.16, canvasSize.height * 0.1);    final fitCell = (canvasSize.width - 32) / (val * cols + (val - 1) * gapCells);
     final cellSize = min(maxiCell, fitCell);
     final pad = cellSize > 40 ? 6.0 : 3.0; // tiny cells need a tiny gap
 

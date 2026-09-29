@@ -19,6 +19,7 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateMixin {
   // header 56 + progress bar 18 + gap 12. the puzzle is built for the space BELOW this
+  static const maxHints = 5;
   static const topAreaHeight = 86.0;
 
   List<GameLevel>? levels;
@@ -212,13 +213,19 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
       spotLightPosition = null;
       hintPiece = null;
       hintBusy = false;
-      hintsLeft = 3; // fresh hints for the new puzzle
+      hintsLeft = min(hintsLeft + 1, maxHints); // fresh hints for the new puzzle
     });
     saveSession();
   }
 
   // pick a random piece that isn't home yet, glow it, then fade it back out
   Future<void> useHint() async {
+    if (hintsLeft <= 0) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('no hints left. solve a puzzle to earn one')),
+    );
+    return;
+  }
     if (hintBusy || hintsLeft <= 0 || didWin || currentLevel == null) return;
     final loose = currentLevel!.parts.where((p) => !p.isPlaced).toList();
     if (loose.isEmpty) return;

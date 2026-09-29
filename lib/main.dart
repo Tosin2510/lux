@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:lux/game_screen.dart';
 import 'package:lux/home_screen.dart';
 
 void main() {
