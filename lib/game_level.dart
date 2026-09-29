@@ -64,8 +64,15 @@ ScoreResult score(List<PuzzleParts> parts) {
 }
 
 // shows the letter once every piece has landed in place, blank otherwise -
-// there's only ever one letter per level so this is just a single character
+// shows each letter of the word once ALL of its pieces are placed,
+// otherwise, an underscore is displayed.
 String letterDisplay(GameLevel level) {
-  final solved = level.parts.isNotEmpty && level.parts.every((p) => p.isPlaced);
-  return solved ? level.letter.toUpperCase() : '_';
+  final word = level.letter;
+  final value = <String>[];
+  for (int i = 0; i < word.length; i++) {
+    final mine = level.parts.where((p) => p.letterIndex == i);
+    final done = mine.isNotEmpty && mine.every((p) => p.isPlaced);
+    value.add(done ? word[i] : '_');
+  }
+  return value.join(' ');
 }
