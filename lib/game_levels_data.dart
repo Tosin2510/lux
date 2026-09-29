@@ -37,78 +37,107 @@ const Map<String, List<String>> letterPatterns = {
 };
 
 class GameLevelsData {
-  static const _alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  static const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
-  static List<GameLevel> build(Size canvasSize) {
-    return [pickRandomLetterLevel(canvasSize)];
+// Store lists of 2, 3 and 4 letter words.
+  static const Map<int, List<String>> wordBank = {
+    2: ['GO', 'UP', 'ME', 'NO', 'SO', 'HI', 'BE', 'WE', 'IT', 'ON', 'AT', 'IN', 'BY', 'MY', 'TO', 'DO', 'AN', 'AS', 'IF', 'OR', 'IS', 'OF', 'US', 'HE', 'AM', 'OH', 'OK', 'PI', 'EX', 'AX', 'OX', 'ED', 'AD', 'AW', 'YE', 'MA', 'PA', 'LA', 'RE', 'AL', 'EL'],
+    3: ['CAT', 'DOG', 'SUN', 'MAP', 'BOX', 'FUN', 'JAM', 'ZIP', 'KEY', 'OWL', 'PEN', 'CAR', 'HAT', 'BEE', 'ANT', 'BAT', 'CUP', 'RAT', 'PIG', 'FOX', 'HEN', 'COW', 'BUG', 'SKY', 'SEA', 'ICE', 'OIL', 'EYE', 'EAR', 'LEG', 'ARM', 'TOY', 'GUN', 'BAG', 'NET', 'LOG', 'TAP', 'VAN', 'WAX', 'YAK'],
+    4: ['LAMP', 'MOON', 'JUMP', 'GAME', 'FISH', 'WAVE', 'QUIZ', 'DARK', 'GLOW', 'LUCK', 'TREE', 'STAR', 'BIRD', 'FIRE', 'SNOW', 'RAIN', 'WIND', 'ROCK', 'SAND', 'CAVE', 'FROG', 'BEAR', 'LION', 'WOLF', 'DEER', 'DUCK', 'GOAT', 'SWAN', 'CRAB', 'SEAL', 'THEN', 'MULE', 'HARE', 'MOTH', 'TOAD', 'FOWL', 'PUMA'],
+  };
+
+// A list that contains a single Game level, which is a word picked at random.
+  static List<GameLevel> build(Size canvasSize, {int letterCount = 1}) {
+    return [pickRandomLevel(canvasSize, letterCount)];
   }
 
-  // grabs a random letter and builds a level for it. pass avoid so we
-  // don't roll the exact same letter twice in a row when moving on
-  static GameLevel pickRandomLetterLevel(Size canvasSize, {String? avoid}) {
+  // avoiding the last word so we don't get the same one twice in a row
+  static GameLevel pickRandomLevel(Size canvasSize, int letterCount, {String? wordToAvoid}) {
     final rand = Random();
-    String letter;
-    do {
-      letter = _alphabet[rand.nextInt(_alphabet.length)];
-    } while (letter == avoid && _alphabet.length > 1);
+    String word;
 
-    return buildLetterLevel(canvasSize, letter, spotlightRadius: 60);
-  }
-
-  static GameLevel buildLetterLevel(Size canvasSize, String letter, {required double spotlightRadius}) {
-    final pattern = letterPatterns[letter]!;
-    final rows = pattern.length;
-    final cols = pattern[0].length;
-
-    // bigger now since it's just one letter at a time, not a whole word
-    // crammed across the screen
-    final cellSize = canvasSize.width * 0.16;
-
-    final gridWidth = cols * cellSize;
-    final startX = (canvasSize.width - gridWidth) / 2;
-    const topYFraction = 0.14;
-
-    bool filled(int rw, int col) {
-      if (rw < 0 || rw >= rows || col < 0 || col >= cols) return false;
-      return pattern[rw][col] == '#';
+    if (letterCount == 1) {
+      do {
+        word = alphabet[rand.nextInt(alphabet.length)];
+      } while (word == wordToAvoid);
+    } else {
+      final bank = wordBank[letterCount]!;
+      do {
+        word = bank[rand.nextInt(bank.length)];
+      } while (word == wordToAvoid && bank.length > 1);
     }
 
-    final rand = Random(letter.codeUnitAt(0)); // seeded per letter so its bumps stay consistent within a play
-    final vertEdges = List.generate(rows, (_) => List.generate(cols - 1, (_) => rand.nextBool() ? 1 : -1));
-    final horizEdges = List.generate(rows - 1, (_) => List.generate(cols, (_) => rand.nextBool() ? 1 : -1));
+    return buildWordLevel(canvasSize, word, spotlightRadius: 60);
+  }
 
+  static GameLevel buildWordLevel(Size canvasSize, String word, {required double spotlightRadius}) {
+    const cols = 4;
+    const rows = 5;
+    const gapCells = 0.5; // space between letters, in cells
+    final val = word.length;
+
+    // shrinking cells so the whole word fits across the screen regardless of the word length.
+    final maxiCell = canvasSize.width * 0.16;
+    final fitCell = (canvasSize.width - 32) / (val * cols + (val - 1) * gapCells);
+    final cellSize = min(maxiCell, fitCell);
+    final pad = cellSize > 40 ? 6.0 : 3.0; // tiny cells need a tiny gap
+
+    final totalWidth = (val * cols + (val - 1) * gapCells) * cellSize;
+    final startAtX = (canvasSize.width - totalWidth) / 2;
+    const topFractionAtY = 0.14;
+
+// Calculates the random position of each piece
+// Aalso creates an object for each piece,
+    final rand = Random(word.hashCode); // bumps stay the same for a given word
+    final scatterRand = Random(); // scatter should be different every time though
     final parts = <PuzzleParts>[];
-    for (int rw = 0; rw < rows; rw++) {
-      for (int col = 0; col < cols; col++) {
-        if (!filled(rw, col)) continue;
 
-        final correctPosition = Offset(
-          startX + col * cellSize,
-          canvasSize.height * topYFraction + rw * cellSize,
-        );
+// Basically loops through every letter in the word as well as every grid.
+    for (int a = 0; a < val; a++) {
+      final pattern = letterPatterns[word[a]]!;
+      final letterX = startAtX + a * (cols + gapCells) * cellSize;
 
-        final scatterX = 20 + rand.nextDouble() * (canvasSize.width - 60 - cellSize);
-        final scatterY = canvasSize.height * 0.42 + rand.nextDouble() * (canvasSize.height * 0.48 - cellSize);
+      bool filled(int rw, int col) {
+        if (rw < 0 || rw >= rows || col < 0 || col >= cols) return false;
+        return pattern[rw][col] == '#';
+      }
 
-        parts.add(PuzzleParts(
-          id: '${letter}_${rw}_$col',
-          color: Color.lerp(const Color(0xFF8C6A2E), const Color(0xFFE8C46A), rand.nextDouble())!,
-          label: '',
-          correctPosition: correctPosition,
-          currentPosition: Offset(scatterX, scatterY),
-          size: Size(cellSize - 6, cellSize - 6), // slightly bigger gap now that pieces themselves are bigger
-          letterIndex: 0,
-          topEdge: filled(rw - 1, col) ? -horizEdges[rw - 1][col] : 0,
-          bottomEdge: filled(rw + 1, col) ? horizEdges[rw][col] : 0,
-          leftEdge: filled(rw, col - 1) ? -vertEdges[rw][col - 1] : 0,
-          rightEdge: filled(rw, col + 1) ? vertEdges[rw][col] : 0,
-        ));
+      final verticalEdges = List.generate(rows, (_) => List.generate(cols - 1, (_) => rand.nextBool() ? 1 : -1));
+      final horizEdges = List.generate(rows - 1, (_) => List.generate(cols, (_) => rand.nextBool() ? 1 : -1));
+
+      for (int rw = 0; rw < rows; rw++) {
+        for (int col = 0; col < cols; col++) {
+          if (!filled(rw, col)) continue;
+
+          final correctPosition = Offset(
+            letterX + col * cellSize,
+            canvasSize.height * topFractionAtY + rw * cellSize,
+          );
+
+          final scatterX = 20 + scatterRand.nextDouble() * (canvasSize.width - 60 - cellSize);
+          final scatterY = canvasSize.height * 0.42 + scatterRand.nextDouble() * (canvasSize.height * 0.48 - cellSize);
+
+// adds the piece to the list of pieces.
+          parts.add(PuzzleParts(
+            id: '${word}_${a}_${rw}_$col',
+            color: Color.lerp(const Color(0xFF8C6A2E), const Color(0xFFE8C46A), rand.nextDouble())!,
+            label: '',
+            correctPosition: correctPosition,
+            currentPosition: Offset(scatterX, scatterY),
+            size: Size(cellSize - pad, cellSize - pad),
+            letterIndex: a ,
+            topEdge: filled(rw - 1, col) ? -horizEdges[rw - 1][col] : 0,
+            bottomEdge: filled(rw + 1, col) ? horizEdges[rw][col] : 0,
+            leftEdge: filled(rw, col - 1) ? -verticalEdges[rw][col - 1] : 0,
+            rightEdge: filled(rw, col + 1) ? verticalEdges[rw][col] : 0,
+          ));
+        }
       }
     }
 
     return GameLevel(
-      levelName: 'Form the letter',
-      letter: letter,
+      levelName: 'Form the word',
+      letter: word, // its a word now (or 1 letter), name kept so nothing else breaks
       spotlightRadius: spotlightRadius,
       parts: parts,
     );
