@@ -5,59 +5,128 @@ import 'package:flutter/services.dart';
 import 'package:lux/game_level.dart';
 import 'package:lux/game_levels_data.dart';
 import 'package:lux/paint_game.dart';
+import 'package:lux/progress_store.dart';
 
 class GameScreen extends StatefulWidget {
-  const GameScreen({super.key});
+  const GameScreen({super.key, this.letterCount = 1, this.savedGameSession});
+
+  final int letterCount;
+  final Map<String, dynamic>? savedGameSession; // if this isn't null we're continuing an old game
 
   @override
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> {
+class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateMixin {
+  // header 56 + progress bar 18 + gap 12. the puzzle is built for the space BELOW this
+  static const topAreaHeight = 86.0;
+
   List<GameLevel>? levels;
   int gameLevelIndex = 0;
-  double matchScore = 0.0;
   bool didWin = false;
   Offset? spotLightPosition;
   PuzzleParts? dragger;
-  Offset dragOffset = Offset.zero; // where inside the piece you grabbed it, so it doesn't snap to your finger
-  Size? lastCanvasSize; // stashed so we can build a fresh letter after a win, outside of build()
+  Offset dragOffset = Offset.zero;
+  Size? lastCanvasSize;
   int lettersSolved = 0;
-  int progress = 0; // resets every 5 - this is what the progress bar tracks
-  bool endSession = false;
-  bool showTutorial = true; // shows once when the screen opens so people actually know what to do
+  int batchProgress = 0;
+  bool tutorial = true;
+
+  // hint stuff
+  late AnimationController hintController;
+  PuzzleParts? hintPiece;
+  int hintsLeft = 3;
+  bool hintBusy = false;
+  int hintRun = 0; // bumps every time a hint starts/cancels so old ones stop themselves
 
   GameLevel? get currentLevel => levels?[gameLevelIndex];
 
+  @override
+  void initState() {
+    super.initState();
+    hintController = AnimationController(vsync: this, duration: const Duration(milliseconds: 450))
+      ..addListener(() => setState(() {}));
+
+    final saved = widget.savedGameSession;
+    if (saved != null) {
+      lettersSolved = saved['lettersSolved'] ?? 0;
+      batchProgress = saved['batchProgress'] ?? 0;
+      hintsLeft = saved['hintsLeft'] ?? 3;
+      tutorial = false; // they've played before, no need
+    }
+  }
+
+  @override
+  void dispose() {
+    hintController.dispose();
+    super.dispose();
+  }
+
   void initializeGameLevels(Size size) {
     lastCanvasSize = size;
-    if (currentLevel == null) {
-      levels = GameLevelsData.build(size);
+    if (currentLevel != null) return;
+
+    final saved = widget.savedGameSession;
+    if (saved != null) {
+      final level = GameLevelsData.buildWordLevel(size, saved['word'] as String, spotlightRadius: 60);
+      final pos = saved['positions'] as Map<String, dynamic>;
+      for (final val in level.parts) {
+        final vals = pos[val.id];
+        if (vals == null) continue;
+        val.currentPosition = Offset(
+          (vals[0] as num).toDouble() * size.width,
+          (vals[1] as num).toDouble() * size.height,
+        );
+      }
+      levels = [level];
+    } else {
+      levels = GameLevelsData.build(size, letterCount: widget.letterCount);
     }
+  }
+
+  // positions are saved as fractions of the canvas so it still works
+  // if the screen size is a bit different next time
+  void saveSession() {
+    if (didWin || currentLevel == null || lastCanvasSize == null) return;
+    final size = lastCanvasSize!;
+    final positions = <String, List<double>>{};
+    for (final val in currentLevel!.parts) {
+      positions[val.id] = [val.currentPosition.dx / size.width, val.currentPosition.dy / size.height];
+    }
+    Progress.saveSession({
+      'count': widget.letterCount,
+      'word': currentLevel!.letter,
+      'lettersSolved': lettersSolved,
+      'batchProgress': batchProgress,
+      'hintsLeft': hintsLeft,
+      'positions': positions,
+    });
   }
 
   void takeScore() {
     final result = score(currentLevel!.parts);
-    matchScore = result.score;
 
     if (result.isWin && !didWin) {
       didWin = true;
-      HapticFeedback.mediumImpact(); // a bigger buzz for the actual win, not just a piece snap
+      HapticFeedback.mediumImpact();
       WidgetsBinding.instance.addPostFrameCallback((_) => showDialogUponWin());
     } else if (!result.isWin) {
       didWin = false;
     }
   }
 
-  // just a few random lines so it's not the same popup every time lol
   final winTitles = ['omgg yes', 'LETS GOOO', 'yesss', 'okay that was clean', 'nice one', 'yoo nice'];
-  final winSubs = ['next one lets go', 'ok next', 'easy', 'onto the next letter', 'lets keep going', 'again'];
+  final winSubs = ['next one lets go', 'ok next', 'easy', 'onto the next one', 'lets keep going', 'again'];
 
   void showDialogUponWin() {
     lettersSolved++;
-    progress++;
+    batchProgress++;
 
-    if (progress  >= 5) {
+    // remember it + the old save is useless now (board is solved)
+    Progress.addCompletedPuzzles(currentLevel!.letter);
+    Progress.clearSession();
+
+    if (batchProgress >= 5) {
       showMilestoneReached();
       return;
     }
@@ -65,6 +134,7 @@ class _GameScreenState extends State<GameScreen> {
     final pick = Random().nextInt(winTitles.length);
     showDialog(
       context: context,
+      barrierDismissible: false, // otherwise tapping outside leaves you on a solved board
       builder: (_) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A24),
         shape: RoundedRectangleBorder(
@@ -93,8 +163,6 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  // every 5 solves you get this instead of the normal popup - a little
-  // checkpoint so it's not just an endless grind with no structure
   void showMilestoneReached() {
     showDialog(
       context: context,
@@ -105,17 +173,16 @@ class _GameScreenState extends State<GameScreen> {
           borderRadius: BorderRadius.circular(20),
           side: const BorderSide(color: Color(0xFFE8C46A), width: 1),
         ),
-        title: const Text('good job', style: TextStyle(color: Color(0xFFE8C46A), fontSize: 24, fontWeight: FontWeight.bold)),
-        content: Text('5 letters done, $lettersSolved total. keep playing?', style: const TextStyle(color: Colors.white70, fontSize: 15)),
+        title: const Text('good job',
+            style: TextStyle(color: Color(0xFFE8C46A), fontSize: 24, fontWeight: FontWeight.bold)),
+        content: Text('5 done, $lettersSolved total. keep playing?',
+            style: const TextStyle(color: Colors.white70, fontSize: 15)),
         actions: [
           TextButton(
             style: TextButton.styleFrom(foregroundColor: Colors.white54),
             onPressed: () {
-              Navigator.pop(context);
-              setState(() {
-                progress = 0;
-                endSession  = true;
-              });
+              Navigator.pop(context); // closes the dialog
+              if (mounted) Navigator.pop(context); // back to home
             },
             child: const Text("i'm done"),
           ),
@@ -123,7 +190,7 @@ class _GameScreenState extends State<GameScreen> {
             style: TextButton.styleFrom(foregroundColor: const Color(0xFFE8C46A)),
             onPressed: () {
               Navigator.pop(context);
-              setState(() => progress = 0);
+              setState(() => batchProgress = 0);
               nextPartOfGame();
             },
             child: const Text('keep playing'),
@@ -133,22 +200,51 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  // picks a new random letter and resets the board - shared by the normal
-  // Next button and the "keep playing" milestone button
   void nextPartOfGame() {
+    hintRun++; // kills any hint that's still mid-animation
+    hintController.value = 0;
     setState(() {
-      levels = [GameLevelsData.pickRandomLetterLevel(lastCanvasSize!, avoid: currentLevel!.letter)];
+      levels = [
+        GameLevelsData.pickRandomLevel(lastCanvasSize!, widget.letterCount, wordToAvoid: currentLevel!.letter)
+      ];
       gameLevelIndex = 0;
       didWin = false;
-      matchScore = 0;
       spotLightPosition = null;
+      hintPiece = null;
+      hintBusy = false;
+      hintsLeft = 3; // fresh hints for the new puzzle
+    });
+    saveSession();
+  }
+
+  // pick a random piece that isn't home yet, glow it, then fade it back out
+  Future<void> useHint() async {
+    if (hintBusy || hintsLeft <= 0 || didWin || currentLevel == null) return;
+    final loose = currentLevel!.parts.where((p) => !p.isPlaced).toList();
+    if (loose.isEmpty) return;
+
+    final run = ++hintRun;
+    hintBusy = true;
+    hintsLeft--;
+    hintPiece = loose[Random().nextInt(loose.length)];
+    HapticFeedback.selectionClick();
+    setState(() {});
+    saveSession(); // save right away so quitting mid-hint doesn't give it back
+
+    await hintController.forward(from: 0);
+    await Future.delayed(const Duration(milliseconds: 1000));
+    if (!mounted || run != hintRun) return;
+    await hintController.reverse();
+    if (!mounted || run != hintRun) return;
+
+    setState(() {
+      hintPiece = null;
+      hintBusy = false;
     });
   }
 
-  // touching the screen is what turns the light on in the first place
   void startDrag(DragStartDetails details) {
     spotLightPosition = details.localPosition;
-    // check topmost piece first in case any overlap
     for (final piece in currentLevel!.parts.reversed) {
       final rectVal = piece.currentPosition & piece.size;
       if (rectVal.contains(details.localPosition) && !piece.isPlaced) {
@@ -169,12 +265,16 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void endDrag(DragEndDetails details) {
-    // snap it home if it landed close enough
-    if (dragger != null && (dragger!.currentPosition - dragger!.correctPosition).distance < 30) {
-      dragger!.currentPosition = dragger!.correctPosition;
-      HapticFeedback.lightImpact(); // little buzz so placing a piece actually feels like something
-      takeScore();
-      setState(() {});
+    if (dragger != null) {
+      // scales with piece size so 4-letter puzzles aren't too forgiving
+      final snapRange = dragger!.size.width * 0.7;
+      if ((dragger!.currentPosition - dragger!.correctPosition).distance < snapRange) {
+        dragger!.currentPosition = dragger!.correctPosition;
+        HapticFeedback.lightImpact();
+        takeScore();
+        setState(() {});
+      }
+      saveSession();
     }
     dragger = null;
   }
@@ -186,29 +286,55 @@ class _GameScreenState extends State<GameScreen> {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, values) {
-            final canvasSize = Size(values.maxWidth, values.maxHeight);
+            // only the area under the header is the real play area
+            final canvasSize = Size(values.maxWidth, values.maxHeight - topAreaHeight);
             initializeGameLevels(canvasSize);
             final gameContent = Column(
               children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'solved: $lettersSolved',
-                        style: const TextStyle(color: Colors.white38, fontSize: 13, letterSpacing: 0.5),
-                      ),
-                      Text(
-                        letterDisplay(currentLevel!),
-                        style: const TextStyle(
-                          color: Color(0xFFE8C46A),
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 2,
+                SizedBox(
+                  height: 56,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.arrow_back_ios_new, size: 18, color: Colors.white54),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                            Text(
+                              'solved: $lettersSolved',
+                              style: const TextStyle(color: Colors.white38, fontSize: 13, letterSpacing: 0.5),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
+                        Row(
+                          children: [
+                            TextButton.icon(
+                              style: TextButton.styleFrom(
+                                foregroundColor: hintsLeft > 0 ? const Color(0xFFE8C46A) : Colors.white24,
+                              ),
+                              onPressed: useHint,
+                              icon: const Icon(Icons.lightbulb_outline, size: 18),
+                              label: Text('$hintsLeft', style: const TextStyle(fontSize: 13)),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              letterDisplay(currentLevel!),
+                              style: const TextStyle(
+                                color: Color(0xFFE8C46A),
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 2,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 Padding(
@@ -216,18 +342,20 @@ class _GameScreenState extends State<GameScreen> {
                   child: buildProgressBar(),
                 ),
                 const SizedBox(height: 12),
-                // where all the actual game stuff happens
                 Expanded(
                   child: GestureDetector(
                     onPanStart: startDrag,
                     onPanUpdate: updateDrag,
                     onPanEnd: endDrag,
+                    onPanCancel: () => dragger = null, // OS interrupted the touch
                     child: CustomPaint(
-                      size: Size(canvasSize.width, canvasSize.height - 64),
+                      size: canvasSize,
                       painter: PaintGame(
                         currentLevel: currentLevel!,
                         spotLightPosition: spotLightPosition,
                         isWin: didWin,
+                        hintPiece: hintPiece,
+                        hintGlow: hintController.value,
                       ),
                     ),
                   ),
@@ -235,12 +363,10 @@ class _GameScreenState extends State<GameScreen> {
               ],
             );
 
-            // stack the tutorial on top so it's the first thing you see -
-            // once dismissed it stays gone for the rest of this session
             return Stack(
               children: [
                 gameContent,
-                if (showTutorial) buildTutorial(),
+                if (tutorial) buildTutorial(),
               ],
             );
           },
@@ -250,7 +376,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget buildProgressBar() {
-    final progressBar = (progress / 5).clamp(0.0, 1.0);
+    final progress = (batchProgress / 5).clamp(0.0, 1.0);
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
       child: Container(
@@ -263,7 +389,7 @@ class _GameScreenState extends State<GameScreen> {
           alignment: Alignment.centerLeft,
           children: [
             TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0, end: progressBar),
+              tween: Tween(begin: 0, end: progress),
               duration: const Duration(milliseconds: 450),
               curve: Curves.easeOut,
               builder: (context, value, child) => FractionallySizedBox(
@@ -292,7 +418,7 @@ class _GameScreenState extends State<GameScreen> {
             ),
             Center(
               child: Text(
-                '$progress/5',
+                '$batchProgress/5',
                 style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
               ),
             ),
@@ -318,7 +444,7 @@ class _GameScreenState extends State<GameScreen> {
               ),
               const SizedBox(height: 14),
               const Text(
-                'touch and drag around the screen to light things up. pieces are hidden in the dark - find one, drag it into its glowing outline to lock it in. do that for every piece and the letter is done.',
+                'touch and drag around the screen to light things up. pieces are hidden in the dark - find one, drag it into its glowing outline to lock it in. do that for every piece and the word is done. stuck? the bulb up top shows you a piece.',
                 style: TextStyle(color: Colors.white70, fontSize: 15, height: 1.4),
                 textAlign: TextAlign.center,
               ),
@@ -330,7 +456,7 @@ class _GameScreenState extends State<GameScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                 ),
-                onPressed: () => setState(() => showTutorial = false),
+                onPressed: () => setState(() => tutorial = false),
                 child: const Text('got it', style: TextStyle(fontWeight: FontWeight.bold)),
               ),
             ],
