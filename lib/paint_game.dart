@@ -7,11 +7,15 @@ class PaintGame extends CustomPainter {
     required this.currentLevel,
     required this.spotLightPosition,
     required this.isWin,
+    this.hintPiece,
+    this.hintGlow = 0,
   });
 
   final GameLevel currentLevel;
   final Offset? spotLightPosition;
   final bool isWin; // once true, we stop hiding anything - the whole board lights up
+  final PuzzleParts? hintPiece; // piece the bulb picked, null when no hint is running
+  final double hintGlow; // 0 to 1, comes from the animation controller in the game screen
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -34,9 +38,16 @@ class PaintGame extends CustomPainter {
             stops: const [0.75, 1.0],
           ).createShader(Rect.fromCircle(center: spotLightPosition!, radius: currentLevel.spotlightRadius));
         canvas.drawCircle(spotLightPosition!, currentLevel.spotlightRadius, glow);
+      } else {
+        // nobody has touched the screen yet so it should be pitch black
+        canvas.drawRect(rectBox, Paint()..color = const Color(0xFF0B0B12));
       }
 
-      // placed pieces stay lit even outside the spotlight - watching each
+      // hint goes AFTER the darkness, otherwise the dark just covers it
+      if (hintPiece != null && hintGlow > 0) {
+        drawHint(canvas, hintPiece!);
+      }
+
       // letter slowly light up as you go is kind of the whole point
       for (final piece in currentLevel.parts) {
         if (!piece.isPlaced) continue;
@@ -44,16 +55,12 @@ class PaintGame extends CustomPainter {
         final haloGlow = Paint();
           haloGlow.shader = RadialGradient(
             colors: [Colors.white.withValues(alpha: 0.35), Colors.transparent],
-          ).createShader(Rect.fromCircle(center: rect.center, radius: rect.longestVal));
-        canvas.drawCircle(rect.center, rect.longestVal, haloGlow);
+          ).createShader(Rect.fromCircle(center: rect.center, radius: rect.longestSide));
+        canvas.drawCircle(rect.center, rect.longestSide, haloGlow);
         drawPiece(canvas, piece);
       }
     }
-    // isWin == true -> nothing painted on top, the full board just stays visible
 
-    // slot outlines drawn LAST, on top of everything - these stay visible
-    // no matter what, so you always know the shape you're building even
-    // while the actual pieces are still hidden in the dark
     final slotPaint = Paint();
       slotPaint.color = Colors.white.withValues(alpha: 0.28);
       slotPaint.style = PaintingStyle.stroke;
@@ -70,6 +77,31 @@ class PaintGame extends CustomPainter {
     }
   }
 
+  // blurry glow behind the piece + the piece itself fading in with the same value
+  void drawHint(Canvas canvas, PuzzleParts piece) {
+    final rect = piece.currentPosition & piece.size;
+    final shape = buildPieceShape(
+      rect,
+      top: piece.topEdge,
+      right: piece.rightEdge,
+      bottom: piece.bottomEdge,
+      left: piece.leftEdge,
+    );
+
+    final halo = Paint()
+      ..color = piece.color.withValues(alpha: 0.9 * hintGlow)
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, 14 * hintGlow);
+    canvas.drawPath(shape, halo);
+
+    // saveLayer so the whole piece (fill + outline) fades together
+    canvas.saveLayer(
+      rect.inflate(rect.longestSide * 0.4),
+      Paint()..color = Colors.white.withValues(alpha: hintGlow),
+    );
+    drawPiece(canvas, piece);
+    canvas.restore();
+  }
+
   void drawPiece(Canvas canvas, PuzzleParts piece) {
     final rect = piece.currentPosition & piece.size;
     final shape = buildPieceShape(
@@ -84,7 +116,7 @@ class PaintGame extends CustomPainter {
         paint.color = Colors.black.withValues(alpha: 0.4);
         paint.style = PaintingStyle.stroke;
         paint.strokeWidth = 1.5;
-        
+
     canvas.drawPath(shape, paint);
     if (piece.label.isEmpty) return; // plain jigsaw blocks now, no icon needed
 
@@ -97,8 +129,4 @@ class PaintGame extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant PaintGame oldDelegate) => true;
-}
-
-extension on Rect {
-  double get longestVal => width > height ? width : height;
 }
