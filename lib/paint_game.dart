@@ -3,6 +3,8 @@ import 'package:lux/game_level.dart';
 import 'package:lux/shadow_function.dart';
 
 class PaintGame extends CustomPainter {
+  // The model.
+  // Declaration of inputs needed.
   PaintGame({
     required this.currentLevel,
     required this.spotLightPosition,
@@ -13,12 +15,13 @@ class PaintGame extends CustomPainter {
 
   final GameLevel currentLevel;
   final Offset? spotLightPosition;
-  final bool isWin; // once true, we stop hiding anything - the whole board lights up
+  final bool isWin; // once this part is true, the whole board lights up
   final PuzzleParts? hintPiece; // piece the bulb picked, null when no hint is running
   final double hintGlow; // 0 to 1, comes from the animation controller in the game screen
 
   @override
   void paint(Canvas canvas, Size size) {
+    // Basically draws a dark filled rectange that covers the canvas area.
     final rectBox = Offset.zero & size;
 
     canvas.drawRect(rectBox, Paint()..color = const Color(0xFF0B0B12));
@@ -28,6 +31,7 @@ class PaintGame extends CustomPainter {
     }
 
     if (!isWin) {
+      //Draws a dark rectanglw that basicslly covers the screen, imitating total darkness.
       if (spotLightPosition != null) {
         final overlay = buildDarknessOverlay(spotLightPosition!, currentLevel.spotlightRadius, rectBox);
         canvas.drawPath(overlay, Paint()..color = const Color(0xFF0B0B12));
@@ -48,7 +52,8 @@ class PaintGame extends CustomPainter {
         drawHint(canvas, hintPiece!);
       }
 
-      // letter slowly light up as you go is kind of the whole point
+      // letter slowly light up as users go along wit the game.
+      // This part allows solved part to stay lit up...
       for (final piece in currentLevel.parts) {
         if (!piece.isPlaced) continue;
         final rect = piece.currentPosition & piece.size;
@@ -61,6 +66,7 @@ class PaintGame extends CustomPainter {
       }
     }
 
+// Creates white outline that shpws where each piece belongs in the game grid.
     final slotPaint = Paint();
       slotPaint.color = Colors.white.withValues(alpha: 0.28);
       slotPaint.style = PaintingStyle.stroke;
@@ -77,7 +83,7 @@ class PaintGame extends CustomPainter {
     }
   }
 
-  // blurry glow behind the piece + the piece itself fading in with the same value
+// Draws the hint piece with a glow effect.
   void drawHint(Canvas canvas, PuzzleParts piece) {
     final rect = piece.currentPosition & piece.size;
     final shape = buildPieceShape(
@@ -88,12 +94,13 @@ class PaintGame extends CustomPainter {
       left: piece.leftEdge,
     );
 
+// Creates some sort of blurred effect(halo effect) behind the grid
     final halo = Paint()
       ..color = piece.color.withValues(alpha: 0.9 * hintGlow)
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, 14 * hintGlow);
     canvas.drawPath(shape, halo);
 
-    // saveLayer so the whole piece (fill + outline) fades together
+// Draw the piece on a buffer layer with its white and glowing effect.
     canvas.saveLayer(
       rect.inflate(rect.longestSide * 0.4),
       Paint()..color = Colors.white.withValues(alpha: hintGlow),
@@ -102,6 +109,7 @@ class PaintGame extends CustomPainter {
     canvas.restore();
   }
 
+// Draw the puzzle piece on the canvas.
   void drawPiece(Canvas canvas, PuzzleParts piece) {
     final rect = piece.currentPosition & piece.size;
     final shape = buildPieceShape(
@@ -111,7 +119,10 @@ class PaintGame extends CustomPainter {
       bottom: piece.bottomEdge,
       left: piece.leftEdge,
     );
+
+    // Draw the path and fill the shape with the background color of the piece.
     canvas.drawPath(shape, Paint()..color = piece.color);
+
       final paint = Paint();
         paint.color = Colors.black.withValues(alpha: 0.4);
         paint.style = PaintingStyle.stroke;
@@ -120,6 +131,7 @@ class PaintGame extends CustomPainter {
     canvas.drawPath(shape, paint);
     if (piece.label.isEmpty) return; // plain jigsaw blocks now, no icon needed
 
+// Draw the piece's label.
     final textPainter = TextPainter(
       text: TextSpan(text: piece.label, style: const TextStyle(fontSize: 26)),
       textDirection: TextDirection.ltr,

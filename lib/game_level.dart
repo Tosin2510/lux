@@ -18,7 +18,7 @@ class PuzzleParts {
 
   final String id;
   final Color color;
-  final String label; // not really used now that pieces just form letters, keeping it in case icons come back later
+  final String label; 
   final Offset correctPosition;
   Offset currentPosition;
   final Size size;

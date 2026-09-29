@@ -11,6 +11,7 @@ class CompletedPuzzleScreen extends StatefulWidget {
 class _CompletedScreenState extends State<CompletedPuzzleScreen> {
   List<ProgressStore>? completed;
 
+// Basically fetches solved puzzles from local storage.
    Future<void> loadCompleted() async {
     List<ProgressStore> val = [];
     try {
@@ -22,12 +23,14 @@ class _CompletedScreenState extends State<CompletedPuzzleScreen> {
     setState(() => completed = val);
   }
 
+// Initialize the widhet state as well as the loadingof solved puzzles.
    @override
   void initState() {
     super.initState();
     loadCompleted();
   }
 
+// The build
   @override
   Widget build(BuildContext context) {
    return Scaffold(
@@ -50,12 +53,14 @@ class _CompletedScreenState extends State<CompletedPuzzleScreen> {
   }
 
   Widget buildList() {
+    // Group words by their lengths.
   final groupedVals = <int, Map<String, int>>{};
   for (final vals in completed!) {
     final data = groupedVals.putIfAbsent(vals.word.length, () => {});
     data[vals.word] = (data[vals.word] ?? 0) + 1;
   }
   final sectionsVal = <Widget>[];
+  //Loop through the lengths and build a section for each length.
     for (int len = 1; len <= 4; len++) {
       final dataVal = groupedVals[len];
       if (dataVal == null) continue;

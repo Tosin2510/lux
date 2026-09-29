@@ -76,7 +76,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
-  // the big title: glow behind + gold gradient letters on top
+  // the big title builder basically.
   Widget buildTitle() {
     return AnimatedBuilder(
       animation: glowController,
@@ -98,6 +98,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 ),
               ),
             ),
+            // Applies a custom shader and basically displays the main title in extra bold typo.
             ShaderMask(
               blendMode: BlendMode.srcIn,
               shaderCallback: (bounds) => const LinearGradient(
@@ -122,6 +123,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
+// The build.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -132,6 +134,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              // The title and subtitle
               buildTitle(),
               const SizedBox(height: 4),
               const Text(
@@ -141,6 +144,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               const SizedBox(height: 44),
 
               // only shows if there is a game to continue
+              // Onpressed of the continue button, the user is taken to the game screen.
               if (savedGameSession != null) ...[
                 SizedBox(
                   width: double.infinity,
@@ -162,6 +166,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               ], // <- the if block ends HERE, the buttons below are always shown
 
               // This is where the game buttons are displayed.
+              // Builds for one, two and three letters.
               gameModeButton(1, 'Monad', '1 letter'),
               gameModeButton(2, 'Dyad', '2 letters'),
               gameModeButton(3, 'Triad', '3 letters'),

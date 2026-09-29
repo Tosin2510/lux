@@ -3,10 +3,7 @@ import 'dart:ui';
 
 import 'package:lux/game_level.dart';
 
-// full alphabet now instead of just a few letters - 4 wide x 5 tall blocky
-// font. a handful of these (M, N, W, X) are rough approximations since
-// diagonals don't render cleanly at this resolution, but they're all
-// readable enough. '#' = a piece goes here, '.' = empty
+// full alphabet now instead of just a few letters 
 const Map<String, List<String>> letterPatterns = {
   'A': ['.##.', '#..#', '####', '#..#', '#..#'],
   'B': ['###.', '#..#', '###.', '#..#', '###.'],
@@ -76,7 +73,7 @@ class GameLevelsData {
     const gapCells = 0.5; // space between letters, in cells
     final val = word.length;
 
-    // shrinking cells so the whole word fits across the screen regardless of the word length.
+// shrinking the cells so the whole word fits across the screen regardless of the word length.
 final maxiCell = min(canvasSize.width * 0.16, canvasSize.height * 0.1);    final fitCell = (canvasSize.width - 32) / (val * cols + (val - 1) * gapCells);
     final cellSize = min(maxiCell, fitCell);
     final pad = cellSize > 40 ? 6.0 : 3.0; // tiny cells need a tiny gap
@@ -136,7 +133,7 @@ final maxiCell = min(canvasSize.width * 0.16, canvasSize.height * 0.1);    final
 
     return GameLevel(
       levelName: 'Form the word',
-      letter: word, // its a word now (or 1 letter), name kept so nothing else breaks
+      letter: word, // its a word now or a single letter.
       spotlightRadius: spotlightRadius,
       parts: parts,
     );

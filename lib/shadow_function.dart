@@ -1,12 +1,12 @@
 import 'dart:math';
 import 'dart:ui';
 
-// This is basically sed to figure out what's actually visible right now...anything outside
-// the light radius should stay hidden/unusable
+// This part checks if a point fals within the light source.
 bool isPointLitUp(Offset point, Offset lightLocation, double radius) {
   return (point - lightLocation).distance <= radius;
 }
 
+// This part basically builds the darkness overlay...
 Path buildDarknessOverlay(Offset lightLocation, double radius, Rect bounds) {
   final path = Path();
     path.fillType = PathFillType.evenOdd;
@@ -15,9 +15,7 @@ Path buildDarknessOverlay(Offset lightLocation, double radius, Rect bounds) {
   return path;
 }
 
-// gives a rectangle an actual jigsaw-piece silhouette instead of just being
-// a plain box. each side gets a code: 0 = straight (used on the outer
-// creating an actual puzzle piece instead of a rectangle
+// This builds a closed paths for the puzzle pieces basically.
 Path buildPieceShape(
   Rect rect, {
   required int top,
@@ -32,6 +30,7 @@ Path buildPieceShape(
   final bottomRight = rect.bottomRight;
   final bottomLeft = rect.bottomLeft;
 
+// This draws each side in a clockwise pattern...
   void drawSide(Path path, Offset start, Offset end, int code, Offset outward) {
     if (code == 0) {
       path.lineTo(end.dx, end.dy);

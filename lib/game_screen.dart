@@ -17,9 +17,8 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateMixin {
-  // header 56 + progress bar 18 + gap 12. the puzzle is built for the space BELOW this
-  static const maxHints = 5;
+class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateMixin { // For the hint animation.
+  static const maxHints = 5; //Maximum number of hints.
   static const topAreaHeight = 86.0;
 
   List<GameLevel>? levels;
@@ -33,7 +32,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
   int batchProgress = 0;
   bool tutorial = true;
 
-  // hint stuff
+// This part handles the hint basically.
   late AnimationController hintController;
   PuzzleParts? hintPiece;
   int hintsLeft = 3;
@@ -42,6 +41,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
 
   GameLevel? get currentLevel => levels?[gameLevelIndex];
 
+// Initialize the hint controller.
   @override
   void initState() {
     super.initState();
@@ -57,12 +57,14 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     }
   }
 
+// Dispose of the hint animation controller.
   @override
   void dispose() {
     hintController.dispose();
     super.dispose();
   }
 
+// Build levels once the screen size is known
   void initializeGameLevels(Size size) {
     lastCanvasSize = size;
     if (currentLevel != null) return;
@@ -85,8 +87,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     }
   }
 
-  // positions are saved as fractions of the canvas so it still works
-  // if the screen size is a bit different next time
+  // positions are saved as fractions of the canvas so it still works regardless of screen size.
   void saveSession() {
     if (didWin || currentLevel == null || lastCanvasSize == null) return;
     final size = lastCanvasSize!;
@@ -94,6 +95,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     for (final val in currentLevel!.parts) {
       positions[val.id] = [val.currentPosition.dx / size.width, val.currentPosition.dy / size.height];
     }
+    // Save the current game session to local storage.
     Progress.saveSession({
       'count': widget.letterCount,
       'word': currentLevel!.letter,
@@ -104,6 +106,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     });
   }
 
+// Calculate score and check if the user won the game.
   void takeScore() {
     final result = score(currentLevel!.parts);
 
@@ -119,11 +122,12 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
   final winTitles = ['omgg yes', 'LETS GOOO', 'yesss', 'okay that was clean', 'nice one', 'yoo nice'];
   final winSubs = ['next one lets go', 'ok next', 'easy', 'onto the next one', 'lets keep going', 'again'];
 
+// Displays a dialog when the user wins.
   void showDialogUponWin() {
     lettersSolved++;
     batchProgress++;
 
-    // remember it + the old save is useless now (board is solved)
+    // Update the progress and clear the session when the user wins.
     Progress.addCompletedPuzzles(currentLevel!.letter);
     Progress.clearSession();
 
@@ -132,6 +136,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
       return;
     }
 
+// Show a dialog with a random win title and subtitle when the user wins.
     final pick = Random().nextInt(winTitles.length);
     showDialog(
       context: context,
@@ -164,6 +169,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     );
   }
 
+// Displays a dialog when the user reaches a milestone.
   void showMilestoneReached() {
     showDialog(
       context: context,
@@ -201,6 +207,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     );
   }
 
+// Moves on to the nest part of the game, reset necessary variables and all...
   void nextPartOfGame() {
     hintRun++; // kills any hint that's still mid-animation
     hintController.value = 0;
@@ -250,6 +257,8 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     });
   }
 
+  // Handles the start of a drag operation.
+
   void startDrag(DragStartDetails details) {
     spotLightPosition = details.localPosition;
     for (final piece in currentLevel!.parts.reversed) {
@@ -262,6 +271,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     }
   }
 
+// Handles the update of a drag operation.
   void updateDrag(DragUpdateDetails details) {
     spotLightPosition = details.localPosition;
     if (dragger != null) {
@@ -270,7 +280,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     takeScore();
     setState(() {});
   }
-
+// Handles the end of a drag operation.
   void endDrag(DragEndDetails details) {
     if (dragger != null) {
       // scales with piece size so 4-letter puzzles aren't too forgiving
@@ -286,6 +296,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     dragger = null;
   }
 
+// The build.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -382,6 +393,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     );
   }
 
+// Builds the progress bar widget.
   Widget buildProgressBar() {
     final progress = (batchProgress / 5).clamp(0.0, 1.0);
     return ClipRRect(
@@ -435,6 +447,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     );
   }
 
+// Build the overlay widget that shows the tutorial instructions.
   Widget buildTutorial() {
     return Positioned.fill(
       child: Container(
