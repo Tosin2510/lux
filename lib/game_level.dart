@@ -1,9 +1,7 @@
 import 'dart:ui';
 
-// one puzzle piece. currentPosition starts scattered somewhere in the dark
-// and moves toward correctPosition as you drag it around. once placed it
-// glows on its own - solving the puzzle IS bringing the light back
 class PuzzleParts {
+  // The model for the puzzle part.
   PuzzleParts({
     required this.id,
     required this.color,
@@ -24,18 +22,19 @@ class PuzzleParts {
   final Offset correctPosition;
   Offset currentPosition;
   final Size size;
-  final int letterIndex; // always 0 now - only one letter per level, this is leftover plumbing from when it was a whole word
+  final int letterIndex;
 
-  // 0 = straight edge, 1 = bump out, -1 = notch in
   final int topEdge;
   final int rightEdge;
   final int bottomEdge;
   final int leftEdge;
 
+// This boolean checks if the piece is close enough to the correct position.
   bool get isPlaced => (currentPosition - correctPosition).distance < 4;
 }
 
 class GameLevel {
+  // The model for the game level.
   GameLevel({
     required this.levelName,
     required this.letter,
@@ -44,7 +43,7 @@ class GameLevel {
   });
 
   final String levelName;
-  final String letter; // the single letter you're forming right now, e.g. "Q" - NOT a word, just one letter at a time
+  final String letter; // the single letter beung formed right now, not a word yet 4just one letter at a time
   final List<PuzzleParts> parts;
   final double spotlightRadius;
 }
@@ -56,15 +55,14 @@ class ScoreResult {
   ScoreResult({required this.score, required this.isWin});
 }
 
-// win condition is just "did every piece make it home"
+// This win condition basically checks if every piece is in its correct position.
 ScoreResult score(List<PuzzleParts> parts) {
   final placedCount = parts.where((p) => p.isPlaced).length;
   final val = parts.isEmpty ? 0.0 : placedCount / parts.length;
   return ScoreResult(score: val, isWin: placedCount == parts.length);
 }
 
-// shows the letter once every piece has landed in place, blank otherwise -
-// shows each letter of the word once ALL of its pieces are placed,
+// shows each letter of the word once every pieces are placed,
 // otherwise, an underscore is displayed.
 String letterDisplay(GameLevel level) {
   final word = level.letter;
