@@ -45,10 +45,11 @@ Only do this if you want to build the app by yourself.
 
 1. Install [Flutter](https://docs.flutter.dev/get-started/install).
 2. Clone the repo and run `flutter pub get`.
-3. Run `flutter run` with a phone or emulator connected.
-4. Add shared preferences to pubspec.yaml.
+3. Add shared preferences to pubspec.yaml.
+4. Run `flutter run` with a phone or emulator connected.
 
 To build a release APK you need your own signing key (see the Flutter docs on signing). 
+
 ## why "Lux"
 
 it's the actual unit of illuminance (lux, as in lumens per square meter) so it felt more honest than just calling it something generic. also just sounds good said out loud.
