@@ -24,7 +24,8 @@ Each piece is a rectangle that gets a bump or a notch cut into whichever edges t
 ## Running it
 
 flutter pub get
-   flutter run
+
+flutter run
 
 No external packages beyond what's already in pubspec.yaml, the shadow/jigsaw shapes and everything are just raw dart:ui path math, no external library.
 
