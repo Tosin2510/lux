@@ -25,14 +25,29 @@ Each piece is a rectangle that gets a bump or a notch cut into whichever edges t
 
 Flutter
 
-## Running it
+## Download
 
-flutter pub get
+Get the latest APK from the [Releases page](https://github.com/YOUR_USERNAME/lux/releases/latest).
 
-flutter run
+Not sure which APK to pick? Choose `app-arm64-v8a-release.apk`. It works on almost all modern phones.
 
-No external packages beyond what's already in pubspec.yaml, the shadow/jigsaw shapes and everything are just raw dart:ui path math, no external library.
+## Installing (Android)
 
+1. Download the APK on your phone.
+2. Open it and allow installs from unknown sources if your phone asks.
+3. Open Lux and pick a mode.
+
+No extra files, folders or setup are needed to play. Just install the APK.
+
+## Running from source
+
+Only needed if you want to build it yourself.
+
+1. Install [Flutter](https://docs.flutter.dev/get-started/install).
+2. Clone the repo and run `flutter pub get`.
+3. Run `flutter run` with a phone or emulator connected.
+
+To build a release APK you need your own signing key (see the Flutter docs on signing). 
 ## why "Lux"
 
 it's the actual unit of illuminance (lux, as in lumens per square meter) so it felt more honest than just calling it something generic. also just sounds good said out loud.
