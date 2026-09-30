@@ -1,6 +1,6 @@
 ### Lux
 
-Built this for PIXL's Blackout. the whole idea was "build something where light or darkness actually matters, not just a dark mode reskin" so here's my attempt at that.
+Built this for PIXL. the whole idea was "build something where light or darkness actually matters, not just a dark mode reskin" so here's my attempt at that.
 
 ## What it actually is?
 
@@ -9,9 +9,9 @@ Everything is basically pitch black. You drag your finger around the screen and 
 Remove the light mechanic and there's literally no game left, you cannotnsee a single piece, nothing. that was basically my whole design constraint the entire time, everything else got built around making sure that stayed true.
 
 ## Game Modes
-Monad - 1 letter, quick round
-Dyad - 2 letters
-Triad - 3 letters, this one's genuinely hard, pieces get small
+- Monad - 1 letter, quick round
+- Dyad - 2 letters
+- Triad - 3 letters, this one is a little bit hard since pieces get small
 
 pick whatever mode from the home screen. There's also a hint button (the lightbulb up at the top) if you're stuck, it'll flash one unplaced piece for a second so you at least know where it is though it doesn't solve it for you. You get a limited number per round and earn one back every time you finish a puzzle.
 
@@ -21,12 +21,34 @@ If you back out mid-puzzle it saves where you left off, so "continue" on the hom
 
 Each piece is a rectangle that gets a bump or a notch cut into whichever edges touch a neighboring piece, neighboring pieces get matched values.
 
-## Running it
+## Framework used
 
-flutter pub get
-flutter run
+Flutter
 
-No external packages beyond what's already in pubspec.yaml, the shadow/jigsaw shapes and everything are just raw dart:ui path math, no external library.
+## Download
+
+Get the latest APK from the [Releases page](https://github.com/Tosin2510/lux/releases/tag/v1.0.0).
+
+Not sure which APK to pick? Choose `app-arm64-v8a-release.apk`. It works on almost all modern phones.
+
+## Installing (Android)
+
+1. Download the APK on your phone.
+2. Open it and allow installs from unknown sources if your phone asks.
+3. Open Lux and pick a mode.
+
+No extra files, folders or setup are needed to play. Just install the APK.
+
+## Running from source
+
+Only do this if you want to build the app by yourself.
+
+1. Install [Flutter](https://docs.flutter.dev/get-started/install).
+2. Clone the repo and run `flutter pub get`.
+3. Add shared preferences to pubspec.yaml.
+4. Run `flutter run` with a phone or emulator connected.
+
+To build a release APK you need your own signing key (see the Flutter docs on signing). 
 
 ## why "Lux"
 
