@@ -1,12 +1,10 @@
 import 'dart:math';
 import 'dart:ui';
 
-// This part checks if a point fals within the light source.
 bool isPointLitUp(Offset point, Offset lightLocation, double radius) {
   return (point - lightLocation).distance <= radius;
 }
 
-// This part basically builds the darkness overlay...
 Path buildDarknessOverlay(Offset lightLocation, double radius, Rect bounds) {
   final path = Path();
     path.fillType = PathFillType.evenOdd;
@@ -15,7 +13,6 @@ Path buildDarknessOverlay(Offset lightLocation, double radius, Rect bounds) {
   return path;
 }
 
-// This builds a closed paths for the puzzle pieces basically.
 Path buildPieceShape(
   Rect rect, {
   required int top,

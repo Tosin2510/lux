@@ -14,7 +14,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   // Holds the saved game session gotten from local storage.
   Map<String, dynamic>? savedGameSession;
 
-  // slow pulse for the glow behind the title
   late AnimationController glowController;
 
   @override
@@ -32,7 +31,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     super.dispose();
   }
 
-  // The navigator push leads to the game screen.
   void goToGame(int count, {Map<String, dynamic>? saved}) {
     Navigator.push(
       context,
@@ -40,17 +38,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     ).then((_) => checkIfSavedGameSession()); // refresh so continue shows up / goes away
   }
 
-  // checks if an active game session exists and updates the state of the widget.
   Future<void> checkIfSavedGameSession() async {
     final val = await Progress.loadSession();
-    // Guard condition for when the screen is no longer there.
     if (!mounted) return;
     setState(() {
       savedGameSession = val;
     });
   }
 
-  // builds the button for each mode. sub is the small hint under the name
   Widget gameModeButton(int count, String label, String sub) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -76,12 +71,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
-  // the big title builder basically.
   Widget buildTitle() {
     return AnimatedBuilder(
       animation: glowController,
       builder: (context, _) {
-        final pulse = glowController.value; // 0 to 1 and back
+        final pulse = glowController.value; 
         return Stack(
           alignment: Alignment.center,
           children: [
@@ -98,7 +92,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 ),
               ),
             ),
-            // Applies a custom shader and basically displays the main title in extra bold typo.
             ShaderMask(
               blendMode: BlendMode.srcIn,
               shaderCallback: (bounds) => const LinearGradient(
@@ -112,7 +105,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   fontSize: 96,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 14,
-                  color: Colors.white, // gets replaced by the gradient
+                  color: Colors.white, 
                   height: 1,
                 ),
               ),
@@ -134,7 +127,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // The title and subtitle
               buildTitle(),
               const SizedBox(height: 4),
               const Text(
@@ -143,8 +135,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               ),
               const SizedBox(height: 44),
 
-              // only shows if there is a game to continue
-              // Onpressed of the continue button, the user is taken to the game screen.
+              
               if (savedGameSession != null) ...[
                 SizedBox(
                   width: double.infinity,
@@ -163,16 +154,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   ),
                 ),
                 const SizedBox(height: 24),
-              ], // <- the if block ends HERE, the buttons below are always shown
-
-              // This is where the game buttons are displayed.
-              // Builds for one, two and three letters.
+              ], 
               gameModeButton(1, 'Monad', '1 letter'),
               gameModeButton(2, 'Dyad', '2 letters'),
               gameModeButton(3, 'Triad', '3 letters'),
               const SizedBox(height: 12),
 
-              // Leads to the completed / solved puzzle history screen
               TextButton(
                 style: TextButton.styleFrom(foregroundColor: Colors.white54),
                 onPressed: () => Navigator.push(

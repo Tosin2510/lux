@@ -1,7 +1,6 @@
 import 'dart:ui';
 
 class PuzzleParts {
-  // The model for the puzzle part.
   PuzzleParts({
     required this.id,
     required this.color,
@@ -34,7 +33,6 @@ class PuzzleParts {
 }
 
 class GameLevel {
-  // The model for the game level.
   GameLevel({
     required this.levelName,
     required this.letter,
@@ -43,7 +41,7 @@ class GameLevel {
   });
 
   final String levelName;
-  final String letter; // the single letter beung formed right now, not a word yet 4just one letter at a time
+  final String letter; // the single letter beung formed right now, not a word yet, just one letter at a time
   final List<PuzzleParts> parts;
   final double spotlightRadius;
 }
@@ -55,7 +53,6 @@ class ScoreResult {
   ScoreResult({required this.score, required this.isWin});
 }
 
-// This win condition basically checks if every piece is in its correct position.
 ScoreResult score(List<PuzzleParts> parts) {
   final placedCount = parts.where((p) => p.isPlaced).length;
   final val = parts.isEmpty ? 0.0 : placedCount / parts.length;

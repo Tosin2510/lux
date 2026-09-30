@@ -23,14 +23,12 @@ class _CompletedScreenState extends State<CompletedPuzzleScreen> {
     setState(() => completed = val);
   }
 
-// Initialize the widhet state as well as the loadingof solved puzzles.
    @override
   void initState() {
     super.initState();
     loadCompleted();
   }
 
-// The build
   @override
   Widget build(BuildContext context) {
    return Scaffold(
@@ -60,7 +58,6 @@ class _CompletedScreenState extends State<CompletedPuzzleScreen> {
     data[vals.word] = (data[vals.word] ?? 0) + 1;
   }
   final sectionsVal = <Widget>[];
-  //Loop through the lengths and build a section for each length.
     for (int len = 1; len <= 4; len++) {
       final dataVal = groupedVals[len];
       if (dataVal == null) continue;
