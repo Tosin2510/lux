@@ -27,7 +27,7 @@ Flutter
 
 ## Download
 
-Get the latest APK from the [Releases page](https://github.com/YOUR_USERNAME/lux/releases/latest).
+Get the latest APK from the [Releases page](https://github.com/Tosin2510/lux/releases/tag/v1.0.0).
 
 Not sure which APK to pick? Choose `app-arm64-v8a-release.apk`. It works on almost all modern phones.
 
@@ -41,11 +41,12 @@ No extra files, folders or setup are needed to play. Just install the APK.
 
 ## Running from source
 
-Only needed if you want to build it yourself.
+Only do this if you want to build the app by yourself.
 
 1. Install [Flutter](https://docs.flutter.dev/get-started/install).
 2. Clone the repo and run `flutter pub get`.
 3. Run `flutter run` with a phone or emulator connected.
+4. Add shared preferences to pubspec.yaml.
 
 To build a release APK you need your own signing key (see the Flutter docs on signing). 
 ## why "Lux"
