@@ -9,9 +9,9 @@ Everything is basically pitch black. You drag your finger around the screen and 
 Remove the light mechanic and there's literally no game left, you cannotnsee a single piece, nothing. that was basically my whole design constraint the entire time, everything else got built around making sure that stayed true.
 
 ## Game Modes
-Monad - 1 letter, quick round
-Dyad - 2 letters
-Triad - 3 letters, this one's genuinely hard, pieces get small
+- Monad - 1 letter, quick round
+- Dyad - 2 letters
+- Triad - 3 letters, this one is a little bit hard since pieces get small
 
 pick whatever mode from the home screen. There's also a hint button (the lightbulb up at the top) if you're stuck, it'll flash one unplaced piece for a second so you at least know where it is though it doesn't solve it for you. You get a limited number per round and earn one back every time you finish a puzzle.
 
