@@ -1,6 +1,6 @@
 ### Lux
 
-Built this for PIXL's Blackout. the whole idea was "build something where light or darkness actually matters, not just a dark mode reskin" so here's my attempt at that.
+Built this for PIXL. the whole idea was "build something where light or darkness actually matters, not just a dark mode reskin" so here's my attempt at that.
 
 ## What it actually is?
 
