@@ -21,6 +21,10 @@ If you back out mid-puzzle it saves where you left off, so "continue" on the hom
 
 Each piece is a rectangle that gets a bump or a notch cut into whichever edges touch a neighboring piece, neighboring pieces get matched values.
 
+## Framework used
+
+Flutter
+
 ## Running it
 
 flutter pub get
