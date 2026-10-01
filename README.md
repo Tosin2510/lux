@@ -58,5 +58,9 @@ it's the actual unit of illuminance (lux, as in lumens per square meter) so it f
 
 It only works on android devices for now.
 
+## License
+
+MIT License
+
 ## Screenshots from the app.
 ![alt text](image.png) ![alt text](image-1.png) ![alt text](image-2.png)
